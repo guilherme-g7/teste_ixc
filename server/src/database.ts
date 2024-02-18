@@ -1,22 +1,24 @@
-import mongoose, { Connection } from 'mongoose';
+import mongoose, {Connection} from 'mongoose';
 
-const MONGODB_URI = 'mongodb://localhost:27017/teste_ixc';
+const MONGODB_URI = 'mongodb://127.0.0.1:27017/teste_ixc';
 
 let dbConnection: Connection | null = null;
 
 async function connectToDatabase(): Promise<void> {
-    if (!dbConnection) {
-        dbConnection = await mongoose.createConnection(MONGODB_URI, {
+
+    if(!dbConnection) {
+        await mongoose.connect(MONGODB_URI, {
             useNewUrlParser: true,
-            useUnifiedTopology: true,
-            useFindAndModify: false,
+            useUnifiedTopology: true
         });
 
-        dbConnection.on('connected', () => {
+        const connection = mongoose.connection;
+
+        connection.on('connected', () => {
             console.log(`Connected to database: ${MONGODB_URI}`);
         });
 
-        dbConnection.on('error', (err) => {
+        connection.on('error', (err) => {
             console.error(`Error connecting to database: ${err}`);
         });
     }
@@ -29,4 +31,4 @@ async function disconnectFromDatabase(): Promise<void> {
     }
 }
 
-export { connectToDatabase, disconnectFromDatabase };
+export {connectToDatabase, disconnectFromDatabase};
