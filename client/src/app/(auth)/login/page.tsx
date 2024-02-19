@@ -6,14 +6,18 @@ import {Button} from "@/components/ui/button";
 import {ArrowRight} from "lucide-react";
 
 import {PasswordInput} from "@/components/ui/password-input";
-import axios, {AxiosError} from "axios";
+import axios from "axios";
 import {z} from "zod";
 import {useForm} from "react-hook-form";
 import {zodResolver} from "@hookform/resolvers/zod";
 import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {useEffect} from "react";
+import io from "socket.io-client";
 
 
+axios.defaults.baseURL = 'http://localhost:5000'
 
 const loginSchema = z.object({
     email: z.string().email({message: "E-mail inválido"}),
@@ -22,6 +26,11 @@ const loginSchema = z.object({
 });
 
 export default function Login() {
+    const router = useRouter();
+    const socket = io('http://localhost:5000');
+
+
+
     const form = useForm<z.infer<typeof loginSchema>>({
         resolver: zodResolver(loginSchema),
         defaultValues: {
@@ -31,12 +40,57 @@ export default function Login() {
         },
     });
 
+    // useEffect(() => {
+    //     const checkLoggedIn = async () => {
+    //         const accessToken = localStorage.getItem('accessToken');
+    //         if (accessToken) {
+    //             try {
+    //                 const response = await axios.post('/api/auth/checkToken', { token: accessToken });
+    //                 console.log(response)
+    //                 if (response.status === 200) {
+    //                     // Token válido, redirecione para a página protegida
+    //                     router.push('/chat');
+    //                 } else {
+    //                     // Token inválido, remova-o do armazenamento local
+    //                     localStorage.removeItem('accessToken');
+    //                 }
+    //             } catch (error) {
+    //                 console.error('Erro ao verificar token:', error);
+    //                 // Em caso de erro, trate conforme necessário (por exemplo, redirecione para a página de login)
+    //                 router.push('/login');
+    //             }
+    //         } else {
+    //             // Se não houver token no armazenamento local, redirecione para a página de login
+    //             router.push('/login');
+    //         }
+    //     };
+    //
+    //     checkLoggedIn();
+    // }, []);
+
+
     async function onSubmit(data: z.infer<typeof loginSchema>) {
         try {
-            const response = await axios.post('/api/auth/login', data);
-            console.log(response.data);
+
+            const response = await axios.post('/api/auth/login', {
+                email: data.email,
+                password: data.password
+            });
+            if (response.status === 200) {
+                console.log(response.data)
+                if (data.rememberMe) {
+                    localStorage.setItem('accessToken', response.data.token);
+                }
+                localStorage.setItem("chatConnected", "true");
+                localStorage.setItem('email', data.email);
+                socket.emit('login', data.email);
+                router.push('/chat', );
+            } else {
+                alert('Erro ao fazer login. Tente novamente mais tarde.');
+            }
         } catch (error) {
             console.error('Erro ao enviar os dados:', error);
+            alert('Erro ao enviar os dados. Por favor, tente novamente mais tarde.');
         }
     }
 

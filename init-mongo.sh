@@ -10,5 +10,5 @@ echo "MongoDB is running!"
 echo "Creating database and collection..."
 mongo <<EOF
 use teste_ixc
-db.createCollection("minhaColecao")
+db.createCollection("collection")
 EOF

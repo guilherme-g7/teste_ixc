@@ -1,15 +1,16 @@
 "use client";
-import { useState } from 'react';
+import {useEffect, useState} from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
-import { ArrowRight } from "lucide-react";
 import { useForm } from "react-hook-form";
 import {Button} from "@/components/ui/button";
 import {z} from "zod";
 import {zodResolver} from "@hookform/resolvers/zod";
 import axios from "axios";
+import {useRouter} from "next/navigation";
+import {hash} from "bcryptjs";
 
 axios.defaults.baseURL = 'http://localhost:5000'
 
@@ -21,6 +22,7 @@ const singUpSchema = z.object({
 });
 
 export default function SignUp() {
+    const router = useRouter();
     const [error, setError] = useState<string | null>(null);
     const { handleSubmit, formState: { errors }, control, watch } = useForm();
 
@@ -34,13 +36,33 @@ export default function SignUp() {
         },
     });
 
+
     async function onSubmit(data: z.infer<typeof singUpSchema>) {
 
         try {
-            const response = await axios.post('/api/users/', data);
-            console.log(response.data);
+
+            if (data.password !== data.confirmPassword) {
+                alert('Senhas não correspondem!')
+                return;
+            }
+
+            const response = await axios.post('/api/users/', {
+                name: data.name,
+                email: data.email,
+                password: data.password
+            });
+
+            if (response.status >= 200 && response.status < 300) {
+                console.log('Cadastro bem-sucedido:', response.data);
+                alert('Usuário cadastrado com sucesso!');
+                router.push("/login");
+            } else {
+                console.error('Erro ao fazer login:', response.statusText);
+                alert('Erro ao enviar os dados. Por favor, tente novamente mais tarde.');
+            }
         } catch (error) {
             console.error('Erro ao enviar os dados:', error);
+            alert('Erro ao enviar os dados. Por favor, tente novamente mais tarde.');
         }
     }
 
@@ -49,7 +71,7 @@ export default function SignUp() {
 
     return (
         <main className="flex flex-col items-center p-24 justify-between">
-            <Card className="rounded-[50px] h-[700px] w-[630px] relative">
+            <Card className="rounded-[50px] h-[780px] w-[630px] relative">
                 <div className="mt-24 ml-24 mr-24 mb-3.5">
                     <CardHeader>
                         <CardTitle>Crie sua conta</CardTitle>
@@ -108,7 +130,7 @@ export default function SignUp() {
                                     name='confirmPassword'
                                     rules={{
                                         required: 'Confirme sua senha',
-                                        validate: value => value === password || 'As senhas não correspondem'
+                                        validate: value => value === watch("password") || 'As senhas não correspondem'
                                     }}
                                     render={({field}) => (
                                         <FormItem>
