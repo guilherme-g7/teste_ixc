@@ -54,11 +54,9 @@ export const getConversationsAndMessages = async (req: Request, res: Response) =
             }));
         }));
 
-        // Retorna as conversas e mensagens encontradas como resposta
         res.status(200).json(mensagens);
     } catch (error) {
         console.error('Erro ao buscar conversas e mensagens:', error);
-        // Se ocorrer um erro, retorna uma mensagem de erro como resposta
         res.status(500).json({ error: 'Erro ao buscar conversas e mensagens' });
     }
 };

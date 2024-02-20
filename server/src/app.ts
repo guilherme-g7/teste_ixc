@@ -9,8 +9,6 @@ import http from 'http';
 import {User} from "./models";
 import Conversation, {IMessage} from "./models/conversation.model";
 import {IUser} from "./models/user.model";
-import mongoose, { Types  } from 'mongoose';
-import {ObjectId} from "mongodb";
 import {format} from "date-fns";
 
 

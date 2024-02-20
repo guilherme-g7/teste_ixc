@@ -40,34 +40,6 @@ export default function Login() {
         },
     });
 
-    // useEffect(() => {
-    //     const checkLoggedIn = async () => {
-    //         const accessToken = localStorage.getItem('accessToken');
-    //         if (accessToken) {
-    //             try {
-    //                 const response = await axios.post('/api/auth/checkToken', { token: accessToken });
-    //                 console.log(response)
-    //                 if (response.status === 200) {
-    //                     // Token válido, redirecione para a página protegida
-    //                     router.push('/chat');
-    //                 } else {
-    //                     // Token inválido, remova-o do armazenamento local
-    //                     localStorage.removeItem('accessToken');
-    //                 }
-    //             } catch (error) {
-    //                 console.error('Erro ao verificar token:', error);
-    //                 // Em caso de erro, trate conforme necessário (por exemplo, redirecione para a página de login)
-    //                 router.push('/login');
-    //             }
-    //         } else {
-    //             // Se não houver token no armazenamento local, redirecione para a página de login
-    //             router.push('/login');
-    //         }
-    //     };
-    //
-    //     checkLoggedIn();
-    // }, []);
-
 
     async function onSubmit(data: z.infer<typeof loginSchema>) {
         try {
@@ -96,7 +68,7 @@ export default function Login() {
 
     return (
         <main className="flex flex-col items-center p-24 justify-between">
-            <Card className="rounded-[50px] h-[660px] w-[600px] relative">
+            <Card className="rounded-[50px] h-[612px] w-[600px] relative">
                 <div className="mt-24 ml-24 mr-24 mb-3.5">
                     <CardHeader>
                         <CardTitle>Acesse sua conta</CardTitle>
@@ -129,21 +101,6 @@ export default function Login() {
                                                 <PasswordInput {...field} />
                                             </FormControl>
                                             <FormMessage/>
-                                        </FormItem>
-                                    )}
-                                />
-                                <div className="mt-4"></div>
-                                <FormField
-                                    name='rememberMe'
-                                    render={({field}) => (
-                                        <FormItem style={{display: 'flex', alignItems: 'center'}}>
-                                            <FormControl><Input type="checkbox" {...field} style={{
-                                                width: '1.5rem',
-                                                height: '1.5rem',
-                                                marginRight: '0.5rem',
-                                                marginTop: '0.5rem'
-                                            }}/></FormControl>
-                                            <FormLabel>Continuar conectado</FormLabel>
                                         </FormItem>
                                     )}
                                 />
