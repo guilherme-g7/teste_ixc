@@ -7,20 +7,26 @@ import dotenv from 'dotenv';
 import {Server, Socket} from "socket.io";
 import http from 'http';
 import {User} from "./models";
-import Conversation from "./models/conversation.model";
+import Conversation, {IMessage} from "./models/conversation.model";
+import {IUser} from "./models/user.model";
+import mongoose, { Types  } from 'mongoose';
+import {ObjectId} from "mongodb";
+import {format} from "date-fns";
+
 
 dotenv.config();
 
 const app = express();
-const PORT = 5000;
+const PORT = 4000;
 
 app.use(cors());
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.urlencoded({extended: false}));
+
 
 app.get('/datetime', (req, res) => {
     const currentDatetime = new Date();
-    res.json({ datetime: currentDatetime });
+    res.json({datetime: currentDatetime});
 });
 
 app.use('/', routes);
@@ -29,7 +35,7 @@ const users: { [key: string]: Socket } = {};
 
 async function startServer() {
     try {
-        await connectToDatabase().then(()=>{
+        await connectToDatabase().then(() => {
             const server = app.listen(PORT, () => {
                 console.log(`Server is running on port ${PORT}`);
             });
@@ -40,9 +46,14 @@ async function startServer() {
         console.error('Failed to connect to the database:', error);
     }
 }
+
 startServer();
 
-export function socketIOConfig(server: http.Server){
+interface IUserWithId extends IUser {
+    _id: string;
+}
+
+export function socketIOConfig(server: http.Server) {
     const io = new Server(server, {
         cors: {
             origin: "*",
@@ -54,13 +65,12 @@ export function socketIOConfig(server: http.Server){
         socket.on('login', async (email: string) => {
             try {
 
-                const user = await User.findOne({ email });
+                const user = await User.findOne({email});
 
                 if (!user) {
                     console.log('Usuário não encontrado com o email:', email);
                     return;
                 }
-                console.log('Usuário', user.name, 'conectado');
                 users[user.id] = socket;
             } catch (error) {
                 console.error('Erro ao buscar usuário:', error);
@@ -68,62 +78,96 @@ export function socketIOConfig(server: http.Server){
         });
 
 
-        socket.on('startConversation', async (otherUserId: string) => {
+        socket.on('startConversation', async (otherUser: IUserWithId) => {
             try {
 
                 const userEmail = socket.handshake.auth.email;
-                const user = await User.findOne({ userEmail });
+                const user = await User.findOne({email: userEmail});
                 let userId = null
                 if (user) {
-                    // Agora você tem o ID do usuário
                     userId = user._id;
                 } else {
                     console.error('Usuário não encontrado com o email:', userEmail);
                 }
 
-                if (!otherUserId) {
+                if (!otherUser._id) {
                     console.error('ID do outro usuário não fornecido.');
                     return;
                 }
 
-                let conversation = await Conversation.findOne({ participants: { $all: [userId, otherUserId] } });
+
+                let conversation = await Conversation.findOne({participants: {$all: [userId, otherUser._id]}});
 
                 if (!conversation) {
                     conversation = new Conversation({
-                        participants: [userId, otherUserId],
+                        participants: [userId, otherUser._id],
                         messages: []
                     });
                     await conversation.save();
                 }
 
-                // Emite um evento para o cliente para informar sobre a nova conversa
                 io.to(socket.id).emit("conversationStarted", conversation);
 
             } catch (error) {
                 console.error('Erro ao iniciar a conversa:', error);
-                // Emite um evento de erro, se necessário
+
                 io.to(socket.id).emit("conversationError", "Erro ao iniciar a conversa");
             }
         });
 
 
-        socket.on('sendMessage', async (data: { senderId: string, recipientId: string, message: string }) => {
-            const { senderId, recipientId, message } = data;
-            console.log('Mensagem recebida:', message);
+        socket.on('sendMessage', async (data: { recipient: IUserWithId, content: string }) => {
+            try {
+                const { recipient, content } = data;
 
-            // Verificar se o destinatário está online e enviar a mensagem
-            if (users[recipientId]) {
-                users[recipientId].emit('messageReceived', { senderId, message });
-            } else {
-                console.log('Usuário', recipientId, 'não está online');
-                // Você pode lidar com esta situação de acordo com suas necessidades, como enviar uma notificação ou armazenar a mensagem para entrega posterior.
+                const userEmail = socket.handshake.auth.email;
+                const user = await User.findOne({ email: userEmail });
+                let senderId = null;
+                if (user) {
+                    senderId = user._id;
+                } else {
+                    console.error('Usuário não encontrado com o email:', userEmail);
+                    return;
+                }
+
+
+                let conversation = await Conversation.findOne({
+                    participants: { $all: [senderId, recipient._id] }
+                });
+
+
+                if (!conversation) {
+                    console.error('Conversa não encontrada');
+                    return;
+                }
+
+
+                const message: IMessage = {
+                    sender: senderId,
+                    content: content,
+                    timestamp: new Date()
+                };
+
+                conversation.messages.push(message);
+                await conversation.save();
+
+                const retorno = {
+                    name: user.name,
+                    content: content,
+                    date: format(new Date(), "'Hoje,' HH'h'mm"),
+                    senderEmail: userEmail
+                }
+
+                io.to(socket.id).emit("messageReceived", retorno);
+
+            } catch (error) {
+                console.error('Erro ao enviar mensagem:', error);
+                // Emite um evento de erro, se necessário
+                io.to(socket.id).emit("messageError", "Erro ao enviar mensagem");
             }
         });
 
-
-
         socket.on('disconnect', () => {
-            // Encontrar e remover o usuário desconectado
             const userId = Object.keys(users).find(key => users[key] === socket);
             if (userId) {
                 console.log('Usuário', userId, 'desconectado');

@@ -17,7 +17,7 @@ import {useEffect} from "react";
 import io from "socket.io-client";
 
 
-axios.defaults.baseURL = 'http://localhost:5000'
+axios.defaults.baseURL = 'http://localhost:4000'
 
 const loginSchema = z.object({
     email: z.string().email({message: "E-mail inválido"}),
@@ -27,7 +27,7 @@ const loginSchema = z.object({
 
 export default function Login() {
     const router = useRouter();
-    const socket = io('http://localhost:5000');
+    const socket = io('http://localhost:4000');
 
 
 

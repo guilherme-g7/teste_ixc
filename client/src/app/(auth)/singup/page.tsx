@@ -12,7 +12,7 @@ import axios from "axios";
 import {useRouter} from "next/navigation";
 import {hash} from "bcryptjs";
 
-axios.defaults.baseURL = 'http://localhost:5000'
+axios.defaults.baseURL = 'http://localhost:4000'
 
 const singUpSchema = z.object({
     name: z.string().min(1, { message: "Nome deve ter no mínimo 1 caractere" }),
